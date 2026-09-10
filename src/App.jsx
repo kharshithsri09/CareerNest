@@ -1,14 +1,20 @@
+import React from "react";
+
 import { useState, useEffect, useMemo, useCallback } from "react";
+
 import {
   Home, Briefcase, FileText, Archive as ArchiveIcon, User, Plus, Search,
-  X, ChevronUp, ChevronDown, Upload, Download, Eye, Trash2, Pencil,
+  X, ChevronUp, ChevronDown, Upload, Download, Eye, Pencil,
   CheckCircle2, Circle, Clock, XCircle, SkipForward, ArrowLeft, RotateCcw,
   MapPin, Link2, Wallet, Menu, ChevronRight
 } from "lucide-react";
+
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell,
   PieChart, Pie
 } from "recharts";
+
+import { supabase } from "./lib/supabase";
 
 /* ============================== TOKENS ============================== */
 const THEME_CSS = `
@@ -380,29 +386,138 @@ function AddApplicationModal({ onClose, onSave, resumes }) {
   );
 }
 
+/* ============================== EDIT APPLICATION MODAL ============================== */
+function EditApplicationModal({ onClose, onSave, resumes, app }) {
+  const [form, setForm] = useState({
+    companyName: app.companyName || "",
+    jobRole: app.jobRole || "",
+    category: app.category || "Software / IT",
+    appliedDate: app.appliedDate ? String(app.appliedDate).slice(0, 10) : new Date().toISOString().slice(0, 10),
+    location: app.location || "",
+    workType: app.workType || "Full-time",
+    salary: app.salary || "",
+    applicationSource: app.applicationSource || "LinkedIn",
+    jobLink: app.jobLink || "",
+    resumeId: app.resumeId || "",
+    notes: app.notes || "",
+  });
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const relevantResumes = resumes.filter(r => r.category === form.category);
+
+  async function submit(e) {
+    e.preventDefault();
+    if (!form.companyName.trim() || !form.jobRole.trim()) {
+      setError("Company name and job role are required.");
+      return;
+    }
+
+    setError("");
+    setSaving(true);
+    const ok = await onSave({ ...form, appliedDate: form.appliedDate });
+    setSaving(false);
+    if (!ok) return;
+    onClose();
+  }
+
+  return (
+    <Modal title="Edit Application" onClose={onClose} wide>
+      <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="cn-label">Company name</label>
+          <input className="cn-input" value={form.companyName} onChange={e => set("companyName", e.target.value)} placeholder="e.g. Infosys" />
+        </div>
+        <div>
+          <label className="cn-label">Job role</label>
+          <input className="cn-input" value={form.jobRole} onChange={e => set("jobRole", e.target.value)} placeholder="e.g. SDE-1" />
+        </div>
+        <div>
+          <label className="cn-label">Category</label>
+          <select className="cn-input" value={form.category} onChange={e => set("category", e.target.value)}>
+            {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="cn-label">Applied date</label>
+          <input type="date" className="cn-input" value={form.appliedDate} onChange={e => set("appliedDate", e.target.value)} />
+        </div>
+        <div>
+          <label className="cn-label">Location</label>
+          <input className="cn-input" value={form.location} onChange={e => set("location", e.target.value)} placeholder="e.g. Bengaluru" />
+        </div>
+        <div>
+          <label className="cn-label">Work type</label>
+          <input className="cn-input" value={form.workType} onChange={e => set("workType", e.target.value)} placeholder="Full-time, Internship…" />
+        </div>
+        <div>
+          <label className="cn-label">Salary / CTC</label>
+          <input className="cn-input" value={form.salary} onChange={e => set("salary", e.target.value)} placeholder="e.g. 6 LPA" />
+        </div>
+        <div>
+          <label className="cn-label">Application source</label>
+          <select className="cn-input" value={form.applicationSource} onChange={e => set("applicationSource", e.target.value)}>
+            {SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
+        <div className="md:col-span-2">
+          <label className="cn-label">Job link (reference only — CareerNest never auto-applies)</label>
+          <input className="cn-input" value={form.jobLink} onChange={e => set("jobLink", e.target.value)} placeholder="https://…" />
+        </div>
+        <div className="md:col-span-2">
+          <label className="cn-label">Resume used</label>
+          <select className="cn-input" value={form.resumeId} onChange={e => set("resumeId", e.target.value)}>
+            <option value="">— None selected —</option>
+            {relevantResumes.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+            {relevantResumes.length === 0 && <option disabled>No resumes in this category yet — add one in Career Files</option>}
+          </select>
+        </div>
+        <div className="md:col-span-2">
+          <label className="cn-label">Notes</label>
+          <textarea className="cn-input" rows={3} value={form.notes} onChange={e => set("notes", e.target.value)} placeholder="Anything worth remembering…" />
+        </div>
+
+        {error && <p style={{ color: "var(--red)" }} className="md:col-span-2 text-xs">{error}</p>}
+
+        <div className="md:col-span-2 flex justify-end gap-3 pt-1">
+          <button type="button" className="cn-btn-ghost" onClick={onClose} disabled={saving}>Cancel</button>
+          <button type="submit" className="cn-btn-gold" disabled={saving}>{saving ? "Saving changes…" : "Save changes"}</button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
 /* ============================== ADD RESUME MODAL ============================== */
 function AddResumeModal({ onClose, onSave }) {
   const [name, setName] = useState("");
   const [category, setCategory] = useState("Software / IT");
   const [file, setFile] = useState(null);
-  const [fileData, setFileData] = useState(null);
   const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
 
   function handleFile(e) {
     const f = e.target.files[0];
     if (!f) return;
-    if (f.size > 4 * 1024 * 1024) { setError("Keep resume files under ~4MB for reliable saving."); return; }
+    if (f.size > 10 * 1024 * 1024) { setError("Keep resume files under 10MB."); return; }
+    if (f.type !== "application/pdf" && !f.name.toLowerCase().endsWith(".pdf")) {
+      setError("Please upload a PDF resume.");
+      return;
+    }
     setError("");
     setFile(f);
-    const reader = new FileReader();
-    reader.onload = () => setFileData(reader.result);
-    reader.readAsDataURL(f);
   }
 
-  function submit(e) {
+  async function submit(e) {
     e.preventDefault();
     if (!name.trim()) { setError("Give this resume a name."); return; }
-    onSave({ name: name.trim(), category, fileName: file ? file.name : null, fileData });
+    if (!file) { setError("Please select a PDF resume."); return; }
+    setError("");
+    setSaving(true);
+    const ok = await onSave({ name: name.trim(), category, file });
+    setSaving(false);
+    if (ok) onClose();
   }
 
   return (
@@ -410,24 +525,24 @@ function AddResumeModal({ onClose, onSave }) {
       <form onSubmit={submit} className="flex flex-col gap-4">
         <div>
           <label className="cn-label">Resume name</label>
-          <input className="cn-input" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Software Resume V2" />
+          <input className="cn-input" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Software Resume V2" disabled={saving} />
         </div>
         <div>
           <label className="cn-label">Category</label>
-          <select className="cn-input" value={category} onChange={e => setCategory(e.target.value)}>
+          <select className="cn-input" value={category} onChange={e => setCategory(e.target.value)} disabled={saving}>
             {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
         <div>
-          <label className="cn-label">File (optional in this demo)</label>
-          <input type="file" accept=".pdf,.doc,.docx" onChange={handleFile}
-            style={{ color: "var(--text-muted)" }} className="text-xs" />
+          <label className="cn-label">PDF resume</label>
+          <input type="file" accept="application/pdf,.pdf" onChange={handleFile}
+            style={{ color: "var(--text-muted)" }} className="text-xs" disabled={saving} />
           {file && <p style={{ color: "var(--text-muted)" }} className="text-xs mt-2">{file.name}</p>}
         </div>
         {error && <p style={{ color: "var(--red)" }} className="text-xs">{error}</p>}
         <div className="flex justify-end gap-3 pt-1">
-          <button type="button" className="cn-btn-ghost" onClick={onClose}>Cancel</button>
-          <button type="submit" className="cn-btn-gold">Save resume</button>
+          <button type="button" className="cn-btn-ghost" onClick={onClose} disabled={saving}>Cancel</button>
+          <button type="submit" className="cn-btn-gold" disabled={saving}>{saving ? "Uploading…" : "Upload resume"}</button>
         </div>
       </form>
     </Modal>
@@ -630,7 +745,7 @@ function ApplicationsPage({ applications, resumes, openApp, openAdd, setPage }) 
 }
 
 /* ============================== APPLICATION DETAIL ============================== */
-function ApplicationDetail({ app, resumes, updateApp, archiveApp, restoreApp, deleteApp, back }) {
+function ApplicationDetail({ app, resumes, updateApp, archiveApp, restoreApp, openEdit, back }) {
   const [newStageName, setNewStageName] = useState("");
   const resume = resumes.find(r => r.id === app.resumeId);
   const completed = app.stages.filter(s => s.status === "completed").length;
@@ -699,12 +814,14 @@ function ApplicationDetail({ app, resumes, updateApp, archiveApp, restoreApp, de
         <ProgressBar pct={pct} />
 
         <div className="flex gap-2 mt-5">
+          {!app.archivedAt && (
+            <button className="cn-btn-gold" onClick={openEdit}><Pencil size={14} /> Edit Application</button>
+          )}
           {!app.archivedAt ? (
             <button className="cn-btn-ghost" onClick={archiveApp}><ArchiveIcon size={14} /> Archive</button>
           ) : (
             <button className="cn-btn-ghost" onClick={restoreApp}><RotateCcw size={14} /> Restore</button>
           )}
-          <button className="cn-btn-ghost" style={{ color: "var(--red)" }} onClick={deleteApp}><Trash2 size={14} /> Delete permanently</button>
         </div>
       </div>
 
@@ -744,17 +861,52 @@ function ApplicationDetail({ app, resumes, updateApp, archiveApp, restoreApp, de
 }
 
 /* ============================== CAREER FILES ============================== */
-function CareerFilesPage({ resumes, openAddResume, updateResume, deleteResume }) {
+function CareerFilesPage({ resumes, openAddResume, updateResume }) {
   const [renamingId, setRenamingId] = useState(null);
   const [renameVal, setRenameVal] = useState("");
+  const [busyId, setBusyId] = useState(null);
 
   function startRename(r) { setRenamingId(r.id); setRenameVal(r.name); }
-  function commitRename(id) {
-    if (renameVal.trim()) updateResume(id, { name: renameVal.trim(), updatedAt: nowISO() });
+  async function commitRename(id) {
+    if (renameVal.trim()) await updateResume(id, { name: renameVal.trim() });
     setRenamingId(null);
   }
-  function viewResume(r) {
-    if (r.fileData) { const w = window.open(); w.document.write(`<iframe src="${r.fileData}" style="border:0;width:100%;height:100vh;"></iframe>`); }
+  async function getSignedUrl(r) {
+    if (!r.filePath) {
+      alert("This resume does not have a cloud file path yet.");
+      return null;
+    }
+    const { data, error } = await supabase.storage.from("resumes").createSignedUrl(
+      r.filePath,
+      300,
+      { download: r.fileName || "resume.pdf" }
+    );
+    if (error) {
+      console.error("Resume signed URL error:", error);
+      alert("Could not open the resume: " + error.message);
+      return null;
+    }
+    return data?.signedUrl || null;
+  }
+  async function viewResume(r) {
+    setBusyId(r.id);
+    const url = await getSignedUrl(r);
+    setBusyId(null);
+    if (url) window.open(url, "_blank", "noopener,noreferrer");
+  }
+  async function downloadResume(r) {
+    setBusyId(r.id);
+    const url = await getSignedUrl(r);
+    setBusyId(null);
+    if (!url) return;
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = r.fileName || "resume.pdf";
+    a.target = "_blank";
+    a.rel = "noreferrer";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
   }
 
   return (
@@ -784,14 +936,17 @@ function CareerFilesPage({ resumes, openAddResume, updateResume, deleteResume })
                 {r.fileName || "No file attached"} · Added {fmtDate(r.createdAt)}
               </p>
               <div className="flex flex-wrap gap-2 mt-1">
-                {r.fileData && (
+                {r.filePath && (
                   <>
-                    <button className="cn-btn-ghost" style={{ padding: "6px 10px" }} onClick={() => viewResume(r)}><Eye size={13} /> View</button>
-                    <a className="cn-btn-ghost" style={{ padding: "6px 10px", textDecoration: "none" }} href={r.fileData} download={r.fileName}><Download size={13} /> Download</a>
+                    <button className="cn-btn-ghost" style={{ padding: "6px 10px" }} onClick={() => viewResume(r)} disabled={busyId === r.id}>
+                      <Eye size={13} /> {busyId === r.id ? "Opening…" : "View"}
+                    </button>
+                    <button className="cn-btn-ghost" style={{ padding: "6px 10px" }} onClick={() => downloadResume(r)} disabled={busyId === r.id}>
+                      <Download size={13} /> Download
+                    </button>
                   </>
                 )}
                 <button className="cn-btn-ghost" style={{ padding: "6px 10px" }} onClick={() => startRename(r)}><Pencil size={13} /> Rename</button>
-                <button className="cn-btn-ghost" style={{ padding: "6px 10px", color: "var(--red)" }} onClick={() => deleteResume(r.id)}><Trash2 size={13} /> Delete</button>
               </div>
             </div>
           ))}
@@ -802,7 +957,7 @@ function CareerFilesPage({ resumes, openAddResume, updateResume, deleteResume })
 }
 
 /* ============================== ARCHIVE ============================== */
-function ArchivePage({ applications, resumes, restoreApp, deleteApp, openApp }) {
+function ArchivePage({ applications, resumes, restoreApp, openApp }) {
   const archived = applications.filter(a => a.archivedAt);
   const resumeName = (id) => resumes.find(r => r.id === id)?.name;
 
@@ -824,7 +979,6 @@ function ArchivePage({ applications, resumes, restoreApp, deleteApp, openApp }) 
               <div className="text-xs" style={{ color: "var(--text-muted)" }}>{resumeName(a.resumeId) || "No resume"} · Archived {fmtDate(a.archivedAt)}</div>
               <div className="flex gap-2 md:justify-end">
                 <button className="cn-btn-ghost" style={{ padding: "6px 10px" }} onClick={() => restoreApp(a.id)}><RotateCcw size={13} /> Restore</button>
-                <button className="cn-btn-ghost" style={{ padding: "6px 10px", color: "var(--red)" }} onClick={() => deleteApp(a.id)}><Trash2 size={13} /> Delete</button>
               </div>
             </div>
           ))}
@@ -916,70 +1070,400 @@ function ProfilePage({ profile, setProfile, data, onImport }) {
 }
 
 /* ============================== APP ============================== */
+function LoginPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function handleLogin(e) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      setError(error.message);
+    }
+
+    setLoading(false);
+  }
+
+  return (
+    <div className="min-h-screen bg-black text-white flex items-center justify-center px-4">
+      <div className="w-full max-w-md rounded-2xl border border-white/10 bg-zinc-900 p-8">
+        <div className="mb-8 text-center">
+          <h1 className="text-3xl font-semibold">CareerNest</h1>
+          <p className="mt-2 text-sm text-zinc-400">
+            Your Career. One Home.
+          </p>
+        </div>
+
+        <form onSubmit={handleLogin} className="space-y-5">
+          <div>
+            <label className="mb-2 block text-sm text-zinc-300">
+              Email
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="w-full rounded-lg border border-white/10 bg-black px-4 py-3 text-white outline-none"
+              placeholder="Enter your email"
+            />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm text-zinc-300">
+              Password
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="w-full rounded-lg border border-white/10 bg-black px-4 py-3 text-white outline-none"
+              placeholder="Enter your password"
+            />
+          </div>
+
+          {error && (
+            <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">
+              {error}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded-lg bg-yellow-500 px-4 py-3 font-medium text-black disabled:opacity-50"
+          >
+            {loading ? "Signing in..." : "Sign in"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [loaded, setLoaded] = useState(false);
+  const [session, setSession] = useState(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
   const [profile, setProfile] = useState({ name: "", email: "", phone: "", location: "", experienceLevel: EXPERIENCE_LEVELS[0], theme: "dark", preferredCategory: "" });
   const [applications, setApplications] = useState([]);
   const [resumes, setResumes] = useState([]);
   const [page, setPage] = useState("home");
   const [selectedId, setSelectedId] = useState(null);
   const [showAddApp, setShowAddApp] = useState(false);
+  const [showEditApp, setShowEditApp] = useState(false);
   const [showAddResume, setShowAddResume] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
 
   useEffect(() => {
+    if (!session) return;
+
     let cancelled = false;
+
     (async () => {
-      const d = await loadData();
-      const data = d || sampleData();
-      if (!cancelled) {
-        setProfile({ preferredCategory: "", ...data.profile });
-        setApplications(data.applications || []);
-        setResumes(data.resumes || []);
-        setLoaded(true);
+      const localData = await loadData();
+
+      const { data: cloudApplications, error } = await supabase
+        .from("applications")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (cancelled) return;
+
+      if (error) {
+        console.error("Supabase application load error:", error);
+        alert("Could not load applications from Supabase: " + error.message);
+        setApplications([]);
+      } else {
+        const mappedApplications = (cloudApplications || []).map((a) => ({
+          id: a.id,
+          companyName: a.company_name,
+          jobRole: a.job_role,
+          category: a.category,
+          appliedDate: a.applied_date,
+          location: a.location || "",
+          workType: a.work_type || "",
+          salary: a.salary || "",
+          applicationSource: a.application_source || "",
+          jobLink: a.job_link || "",
+          resumeId: a.resume_id || null,
+          status: a.status || "In Progress",
+          notes: a.notes || "",
+          createdAt: a.created_at,
+          updatedAt: a.updated_at,
+          archivedAt: a.archived_at || null,
+          stages: makeStages(a.category),
+        }));
+
+        setApplications(mappedApplications);
       }
-      if (!d) await saveData(data);
+
+      setProfile({
+        preferredCategory: "",
+        ...(localData?.profile || {}),
+      });
+
+      const { data: cloudResumes, error: resumeError } = await supabase
+        .from("resumes")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (cancelled) return;
+
+      if (resumeError) {
+        console.error("Supabase resume load error:", resumeError);
+        alert("Could not load resumes from Supabase: " + resumeError.message);
+        setResumes([]);
+      } else {
+        const mappedResumes = (cloudResumes || []).map((r) => ({
+          id: r.id,
+          name: r.name || "Unnamed resume",
+          category: r.category || "Software / IT",
+          fileName: r.file_name || "resume.pdf",
+          filePath: r.file_path || "",
+          createdAt: r.created_at,
+          updatedAt: r.updated_at,
+        }));
+        setResumes(mappedResumes);
+      }
+      setLoaded(true);
     })();
+
     return () => { cancelled = true; };
-  }, []);
+  }, [session]);
 
   useEffect(() => {
     if (!loaded) return;
     saveData({ profile, applications, resumes });
   }, [profile, applications, resumes, loaded]);
 
-  const updateApplication = useCallback((id, patch) => {
+  const updateApplication = useCallback(async (id, patch) => {
+    const dbPatch = {};
+
+    if (Object.prototype.hasOwnProperty.call(patch, "companyName")) dbPatch.company_name = patch.companyName.trim();
+    if (Object.prototype.hasOwnProperty.call(patch, "jobRole")) dbPatch.job_role = patch.jobRole.trim();
+    if (Object.prototype.hasOwnProperty.call(patch, "category")) dbPatch.category = patch.category;
+    if (Object.prototype.hasOwnProperty.call(patch, "appliedDate")) dbPatch.applied_date = patch.appliedDate;
+    if (Object.prototype.hasOwnProperty.call(patch, "location")) dbPatch.location = patch.location;
+    if (Object.prototype.hasOwnProperty.call(patch, "workType")) dbPatch.work_type = patch.workType;
+    if (Object.prototype.hasOwnProperty.call(patch, "salary")) dbPatch.salary = patch.salary;
+    if (Object.prototype.hasOwnProperty.call(patch, "applicationSource")) dbPatch.application_source = patch.applicationSource;
+    if (Object.prototype.hasOwnProperty.call(patch, "jobLink")) dbPatch.job_link = patch.jobLink;
+    if (Object.prototype.hasOwnProperty.call(patch, "resumeId")) dbPatch.resume_id = patch.resumeId || null;
+    if (Object.prototype.hasOwnProperty.call(patch, "status")) dbPatch.status = patch.status;
+    if (Object.prototype.hasOwnProperty.call(patch, "notes")) dbPatch.notes = patch.notes;
+    if (Object.prototype.hasOwnProperty.call(patch, "archivedAt")) dbPatch.archived_at = patch.archivedAt || null;
+
+    if (Object.keys(dbPatch).length > 0) {
+      dbPatch.updated_at = nowISO();
+
+      const { data, error } = await supabase
+        .from("applications")
+        .update(dbPatch)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Supabase application update error:", error);
+        alert("Could not save application changes: " + error.message);
+        return false;
+      }
+
+      const cloudPatch = {
+        companyName: data.company_name,
+        jobRole: data.job_role,
+        category: data.category,
+        appliedDate: data.applied_date,
+        location: data.location || "",
+        workType: data.work_type || "",
+        salary: data.salary || "",
+        applicationSource: data.application_source || "",
+        jobLink: data.job_link || "",
+        resumeId: data.resume_id || null,
+        status: data.status || "In Progress",
+        notes: data.notes || "",
+        updatedAt: data.updated_at,
+        archivedAt: data.archived_at || null,
+      };
+
+      setApplications(prev => prev.map(a => a.id === id ? { ...a, ...cloudPatch } : a));
+      return true;
+    }
+
     setApplications(prev => prev.map(a => a.id === id ? { ...a, ...patch, updatedAt: nowISO() } : a));
+    return true;
   }, []);
-  const addApplication = useCallback((form) => {
+  const addApplication = useCallback(async (form) => {
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      alert("Please log in again.");
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("applications")
+      .insert({
+        user_id: user.id,
+        company_name: form.companyName.trim(),
+        job_role: form.jobRole.trim(),
+        category: form.category,
+        applied_date: form.appliedDate,
+        location: form.location,
+        work_type: form.workType,
+        salary: form.salary,
+        application_source: form.applicationSource,
+        job_link: form.jobLink,
+        resume_id: form.resumeId || null,
+        status: "In Progress",
+        notes: form.notes,
+        archived_at: null,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Supabase application insert error:", error);
+      alert("Could not save application: " + error.message);
+      return;
+    }
+
     const app = {
-      id: uid(), companyName: form.companyName.trim(), jobRole: form.jobRole.trim(), category: form.category,
-      appliedDate: form.appliedDate, location: form.location, workType: form.workType, salary: form.salary,
-      applicationSource: form.applicationSource, jobLink: form.jobLink, resumeId: form.resumeId || null,
-      status: "In Progress", notes: form.notes, createdAt: nowISO(), updatedAt: nowISO(), archivedAt: null,
+      id: data.id,
+      companyName: data.company_name,
+      jobRole: data.job_role,
+      category: data.category,
+      appliedDate: data.applied_date,
+      location: data.location,
+      workType: data.work_type,
+      salary: data.salary,
+      applicationSource: data.application_source,
+      jobLink: data.job_link,
+      resumeId: data.resume_id,
+      status: data.status,
+      notes: data.notes,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+      archivedAt: data.archived_at,
       stages: makeStages(form.category),
     };
+
     setApplications(prev => [app, ...prev]);
     setShowAddApp(false);
     setSelectedId(app.id);
     setPage("detail");
   }, []);
-  const addResume = useCallback((form) => {
-    const r = { id: uid(), name: form.name, category: form.category, fileName: form.fileName, fileData: form.fileData, createdAt: nowISO(), updatedAt: nowISO() };
+  const addResume = useCallback(async (form) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      alert("Please log in again.");
+      return false;
+    }
+    if (!form.file) {
+      alert("Please select a PDF resume.");
+      return false;
+    }
+
+    const safeName = form.file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const filePath = `${user.id}/${uid()}-${safeName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("resumes")
+      .upload(filePath, form.file, {
+        cacheControl: "3600",
+        upsert: false,
+        contentType: form.file.type || "application/pdf",
+      });
+
+    if (uploadError) {
+      console.error("Supabase resume upload error:", uploadError);
+      alert("Could not upload resume: " + uploadError.message);
+      return false;
+    }
+
+    const { data, error } = await supabase
+      .from("resumes")
+      .insert({
+        user_id: user.id,
+        name: form.name,
+        category: form.category,
+        file_name: form.file.name,
+        file_path: filePath,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Supabase resume metadata error:", error);
+      alert("The file uploaded, but its resume record could not be saved: " + error.message);
+      return false;
+    }
+
+    const r = {
+      id: data.id,
+      name: data.name,
+      category: data.category,
+      fileName: data.file_name,
+      filePath: data.file_path,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+    };
     setResumes(prev => [r, ...prev]);
-    setShowAddResume(false);
+    return true;
   }, []);
-  const updateResume = useCallback((id, patch) => {
-    setResumes(prev => prev.map(r => r.id === id ? { ...r, ...patch } : r));
-  }, []);
-  const deleteResume = useCallback((id) => {
-    if (!confirm("Delete this resume? Applications referencing it will show \"No resume linked\".")) return;
-    setResumes(prev => prev.filter(r => r.id !== id));
-  }, []);
-  const deleteApplication = useCallback((id) => {
-    if (!confirm("Permanently delete this application? This can't be undone.")) return;
-    setApplications(prev => prev.filter(a => a.id !== id));
-    setPage("applications");
+
+  const updateResume = useCallback(async (id, patch) => {
+    const dbPatch = {};
+    if (Object.prototype.hasOwnProperty.call(patch, "name")) dbPatch.name = patch.name.trim();
+    if (Object.prototype.hasOwnProperty.call(patch, "category")) dbPatch.category = patch.category;
+    if (Object.keys(dbPatch).length === 0) return true;
+
+    dbPatch.updated_at = nowISO();
+    const { data, error } = await supabase
+      .from("resumes")
+      .update(dbPatch)
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Supabase resume update error:", error);
+      alert("Could not save resume changes: " + error.message);
+      return false;
+    }
+
+    setResumes(prev => prev.map(r => r.id === id ? {
+      ...r,
+      name: data.name,
+      category: data.category,
+      updatedAt: data.updated_at,
+    } : r));
+    return true;
   }, []);
   function importAll(parsed) {
     if (!confirm("Import this backup? It will replace your current CareerNest data.")) return;
@@ -992,7 +1476,7 @@ export default function App() {
 
   function openApp(id) { setSelectedId(id); setPage("detail"); setMobileMenu(false); }
   function goPage(p) { setPage(p); setMobileMenu(false); }
-
+  if (!session) return <LoginPage />;
   if (!loaded) {
     return (
       <div className="cn-root flex items-center justify-center h-screen">
@@ -1024,12 +1508,12 @@ export default function App() {
                 updateApp={(patch) => updateApplication(selectedApp.id, patch)}
                 archiveApp={() => { updateApplication(selectedApp.id, { archivedAt: nowISO() }); goPage("archive"); }}
                 restoreApp={() => updateApplication(selectedApp.id, { archivedAt: null })}
-                deleteApp={() => deleteApplication(selectedApp.id)}
+                openEdit={() => setShowEditApp(true)}
                 back={() => goPage("applications")}
               />
             )}
-            {page === "files" && <CareerFilesPage resumes={resumes} openAddResume={() => setShowAddResume(true)} updateResume={updateResume} deleteResume={deleteResume} />}
-            {page === "archive" && <ArchivePage applications={applications} resumes={resumes} restoreApp={(id) => updateApplication(id, { archivedAt: null })} deleteApp={deleteApplication} openApp={openApp} />}
+            {page === "files" && <CareerFilesPage resumes={resumes} openAddResume={() => setShowAddResume(true)} updateResume={updateResume} />}
+            {page === "archive" && <ArchivePage applications={applications} resumes={resumes} restoreApp={(id) => updateApplication(id, { archivedAt: null })} openApp={openApp} />}
             {page === "profile" && <ProfilePage profile={profile} setProfile={setProfile} data={{ profile, applications, resumes }} onImport={importAll} />}
           </main>
         </div>
@@ -1037,6 +1521,14 @@ export default function App() {
 
       <BottomNav page={page} setPage={goPage} />
 
+      {showEditApp && selectedApp && (
+        <EditApplicationModal
+          app={selectedApp}
+          resumes={resumes}
+          onClose={() => setShowEditApp(false)}
+          onSave={(patch) => updateApplication(selectedApp.id, patch)}
+        />
+      )}
       {showAddApp && <AddApplicationModal onClose={() => setShowAddApp(false)} onSave={addApplication} resumes={resumes} />}
       {showAddResume && <AddResumeModal onClose={() => setShowAddResume(false)} onSave={addResume} />}
     </div>
