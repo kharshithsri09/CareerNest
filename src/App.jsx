@@ -871,15 +871,16 @@ function CareerFilesPage({ resumes, openAddResume, updateResume }) {
     if (renameVal.trim()) await updateResume(id, { name: renameVal.trim() });
     setRenamingId(null);
   }
-  async function getSignedUrl(r) {
+  async function getSignedUrl(r, download = false) {
     if (!r.filePath) {
       alert("This resume does not have a cloud file path yet.");
       return null;
     }
+    const options = download ? { download: r.fileName || "resume.pdf" } : {};
     const { data, error } = await supabase.storage.from("resumes").createSignedUrl(
       r.filePath,
       300,
-      { download: r.fileName || "resume.pdf" }
+      options
     );
     if (error) {
       console.error("Resume signed URL error:", error);
@@ -890,13 +891,13 @@ function CareerFilesPage({ resumes, openAddResume, updateResume }) {
   }
   async function viewResume(r) {
     setBusyId(r.id);
-    const url = await getSignedUrl(r);
+    const url = await getSignedUrl(r, false);
     setBusyId(null);
     if (url) window.open(url, "_blank", "noopener,noreferrer");
   }
   async function downloadResume(r) {
     setBusyId(r.id);
-    const url = await getSignedUrl(r);
+    const url = await getSignedUrl(r, true);
     setBusyId(null);
     if (!url) return;
     const a = document.createElement("a");
