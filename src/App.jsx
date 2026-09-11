@@ -3,7 +3,7 @@ import React from "react";
 import { useState, useEffect, useMemo, useCallback } from "react";
 
 import {
-  Home, Briefcase, FileText, Archive as ArchiveIcon, User, Plus, Search,
+  Home, Briefcase, FileText, Archive as ArchiveIcon, User, Plus, Search, LogOut,
   X, ChevronUp, ChevronDown, Upload, Download, Eye, Pencil,
   CheckCircle2, Circle, Clock, XCircle, SkipForward, ArrowLeft, RotateCcw,
   MapPin, Link2, Wallet, Menu, ChevronRight, Sun, Moon, ArrowUpRight
@@ -19,6 +19,11 @@ import careerNestLogo from "./assets/careernest-logo.png";
 
 /* ============================== TOKENS ============================== */
 const THEME_CSS = `
+  html,body,#root{min-height:100%;}
+  html{overflow-y:auto;}
+  body{margin:0;overflow-x:hidden;overflow-y:auto;}
+  #root{width:100%;overflow:visible;}
+  .cn-page-main{min-width:0;width:100%;min-height:100vh;overflow:visible;}
   .cn-root{
     --bg:#06111f;--surface:rgba(11,28,47,.82);--surface-2:#0e2238;--surface-3:#15314c;
     --border:rgba(84,197,255,.22);--border-soft:rgba(220,239,255,.10);
@@ -30,7 +35,7 @@ const THEME_CSS = `
       radial-gradient(900px 500px at -5% -5%,rgba(36,126,255,.25),transparent 60%),
       radial-gradient(760px 500px at 105% 0%,rgba(32,205,166,.17),transparent 58%),
       radial-gradient(800px 500px at 50% 110%,rgba(245,194,81,.08),transparent 62%),#06111f;
-    color:var(--text);min-height:100vh;transition:background .4s ease,color .3s ease;position:relative;overflow-x:hidden;
+    color:var(--text);min-height:100vh;transition:background .4s ease,color .3s ease;position:relative;overflow-x:hidden;overflow-y:visible;
   }
   .cn-root.light{
     --bg:#f4faf8;--surface:rgba(255,255,255,.82);--surface-2:#f8fcfb;--surface-3:#edf7f4;
@@ -72,10 +77,12 @@ const THEME_CSS = `
   .cn-sidebar{position:relative;overflow:hidden}.cn-sidebar-art{position:absolute;left:-8px;right:-8px;bottom:0;height:260px;pointer-events:none;z-index:0;overflow:hidden}.cn-sidebar-art::before{content:"";position:absolute;left:-22%;bottom:-62px;width:145%;height:142px;border-radius:50%;border-top:2px solid rgba(38,190,198,.34);background:linear-gradient(165deg,rgba(8,64,83,.58),rgba(7,39,57,.08));transform:rotate(-5deg)}.cn-sidebar-art::after{content:"";position:absolute;left:-18%;bottom:-92px;width:142%;height:142px;border-radius:50%;border-top:1.5px solid rgba(54,198,194,.22);background:transparent;transform:rotate(-7deg)}.cn-sidebar-art .wave{position:absolute;left:-24%;right:24%;bottom:52px;height:78px;border-radius:50%;border-top:2px solid rgba(44,192,196,.28);transform:rotate(-9deg)}.cn-sidebar-art .wave-2{position:absolute;left:-18%;right:4%;bottom:20px;height:68px;border-radius:50%;border-top:1px solid rgba(54,198,194,.20);transform:rotate(-8deg)}.cn-sidebar-art .stem{position:absolute;right:48px;bottom:-28px;width:5px;height:205px;border-radius:50%;background:linear-gradient(to top,rgba(37,114,89,.08),rgba(63,190,125,.78));transform:rotate(23deg);transform-origin:bottom;box-shadow:0 0 14px rgba(49,170,119,.10)}.cn-sidebar-art .leaf-a,.cn-sidebar-art .leaf-b,.cn-sidebar-art .leaf-c,.cn-sidebar-art .leaf-d{position:absolute;border-radius:100% 0 100% 0;background:linear-gradient(145deg,rgba(102,220,145,.92),rgba(25,123,92,.48));box-shadow:0 8px 20px rgba(25,123,94,.13)}.cn-sidebar-art .leaf-a{right:4px;bottom:96px;width:50px;height:126px;transform:rotate(32deg)}.cn-sidebar-art .leaf-b{right:68px;bottom:47px;width:38px;height:96px;transform:rotate(-27deg) scale(.92)}.cn-sidebar-art .leaf-c{right:84px;bottom:128px;width:30px;height:73px;transform:rotate(-47deg) scale(.82);opacity:.88}.cn-sidebar-art .leaf-d{right:126px;bottom:18px;width:31px;height:70px;transform:rotate(-76deg) scale(.72);opacity:.78}.cn-root.light .cn-sidebar-art::before{background:linear-gradient(165deg,rgba(35,139,130,.08),rgba(45,145,133,.018));border-top-color:rgba(24,143,132,.14)}.cn-root.light .cn-sidebar-art::after{border-top-color:rgba(24,143,132,.10)}.cn-root.light .cn-sidebar-art .wave,.cn-root.light .cn-sidebar-art .wave-2{border-top-color:rgba(34,151,142,.13)}.cn-root.light .cn-sidebar-art .stem{background:linear-gradient(to top,rgba(63,159,119,.03),rgba(63,159,119,.30));box-shadow:none}.cn-root.light .cn-sidebar-art .leaf-a,.cn-root.light .cn-sidebar-art .leaf-b,.cn-root.light .cn-sidebar-art .leaf-c,.cn-root.light .cn-sidebar-art .leaf-d{background:linear-gradient(145deg,rgba(92,190,137,.34),rgba(50,140,112,.08));box-shadow:none}
   .cn-brand-logo{width:178px;height:auto;display:block;object-fit:contain}.cn-mobile-logo{width:145px;height:auto;display:block;object-fit:contain}.cn-loading-logo{width:210px;max-width:65vw;height:auto;display:block;object-fit:contain}
   .cn-sidebar-journey{position:relative;overflow:hidden;border:1px solid rgba(76,201,226,.14);border-radius:22px;background:linear-gradient(145deg,rgba(12,42,60,.74),rgba(7,29,45,.54));box-shadow:0 16px 34px rgba(0,0,0,.12),inset 0 1px 0 rgba(255,255,255,.05)}.cn-sidebar-journey-glow{position:absolute;width:90px;height:90px;right:-25px;top:-25px;border-radius:50%;background:rgba(58,215,175,.16);filter:blur(22px)}.cn-sidebar-journey-kicker{font-size:9px;letter-spacing:.16em;font-weight:900;color:#79a8be;position:relative}.cn-sidebar-journey-title{font-size:17px;font-weight:850;color:#f5f9fc;letter-spacing:-.035em;margin-top:5px;position:relative}.cn-sidebar-journey-steps{display:flex;align-items:center;gap:5px;margin-top:11px;font-size:9px;color:#b9cad8;position:relative}.cn-sidebar-journey-steps i{font-style:normal;color:#f5c451;font-size:10px}.cn-sidebar-journey-line{height:3px;border-radius:99px;background:rgba(255,255,255,.07);margin-top:11px;overflow:hidden;position:relative}.cn-sidebar-journey-line span{display:block;width:58%;height:100%;border-radius:99px;background:linear-gradient(90deg,#2ec7ad,#f5c451);box-shadow:0 0 12px rgba(46,199,173,.24)}.cn-sidebar-journey-note{font-size:9px;color:#7892a8;margin-top:8px;position:relative}.cn-root.light .cn-sidebar-journey{background:linear-gradient(145deg,rgba(237,249,246,.92),rgba(222,242,238,.72));border-color:rgba(11,130,119,.15);box-shadow:0 16px 34px rgba(33,89,98,.08),inset 0 1px 0 rgba(255,255,255,.80)}.cn-root.light .cn-sidebar-journey-kicker{color:#4d7d7a}.cn-root.light .cn-sidebar-journey-title{color:#173047}.cn-root.light .cn-sidebar-journey-steps{color:#5d7387}.cn-root.light .cn-sidebar-journey-note{color:#6e8793}.cn-root.light .cn-sidebar-journey-line{background:rgba(19,67,76,.08)}
-  .cn-dashboard-top{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:22px;position:relative;padding:4px 0}.cn-dashboard-top::after{content:"";position:absolute;right:-20px;bottom:-14px;width:300px;height:130px;pointer-events:none;background:radial-gradient(ellipse at center,rgba(68,221,184,.14),transparent 68%);filter:blur(15px)}
+  .cn-dashboard-top{display:grid;grid-template-columns:minmax(270px,330px) minmax(420px,1fr) 105px auto;align-items:center;gap:18px;margin-bottom:22px;position:relative;padding:0}.cn-dashboard-top::after{content:"";position:absolute;right:-20px;bottom:-14px;width:360px;height:150px;pointer-events:none;background:radial-gradient(ellipse at center,rgba(68,221,184,.12),transparent 68%);filter:blur(18px)}
   .cn-dashboard-search{width:270px;position:relative;z-index:2}.cn-dashboard-search input{padding-left:40px;background:rgba(255,255,255,.76);height:46px}.cn-root:not(.light) .cn-dashboard-search input{background:rgba(8,25,43,.76)}
   .cn-theme-toggle{width:46px;height:46px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--border-soft);background:var(--surface);color:var(--gold);cursor:pointer;box-shadow:0 9px 26px rgba(7,19,33,.10);transition:transform .2s,background .2s,border-color .2s,box-shadow .2s}.cn-theme-toggle:hover{transform:rotate(-8deg) scale(1.05);border-color:var(--border);box-shadow:0 13px 32px rgba(7,19,33,.16)}
-  .cn-hero-copy{padding:2px 4px 0;position:relative;z-index:2}.cn-hero-greeting{font-size:13px;color:var(--gold);font-weight:800;letter-spacing:.10em;text-transform:uppercase;margin-bottom:4px}.cn-hero-name{font-size:31px;line-height:1.08;font-weight:850;color:var(--text);letter-spacing:-.05em}.cn-hero-sub{font-size:14px;color:var(--text-muted);margin-top:8px}.cn-hero-decor{position:absolute;right:0;top:-8px;width:170px;text-align:right;font-family:cursive;font-size:26px;line-height:.9;font-style:italic;font-weight:700;color:var(--gold);opacity:.75;transform:rotate(-5deg);pointer-events:none}.cn-root.light .cn-hero-decor{color:#347a73}.cn-hero-decor span{display:block}.cn-hero-decor::after{content:"";display:block;width:50px;height:12px;margin:6px 0 0 auto;border-bottom:2px solid currentColor;border-radius:50%;opacity:.55}
+  .cn-hero-copy{padding:2px 4px 0;position:relative;z-index:2}.cn-hero-greeting{font-size:13px;color:var(--gold);font-weight:800;letter-spacing:.10em;text-transform:uppercase;margin-bottom:4px}.cn-hero-name{font-size:31px;line-height:1.08;font-weight:850;color:var(--text);letter-spacing:-.05em}.cn-hero-sub{font-size:14px;color:var(--text-muted);margin-top:8px}.cn-dashboard-slogan{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;min-width:90px;font-family:cursive;font-size:23px;line-height:.88;font-style:italic;font-weight:700;color:var(--gold);opacity:.68;transform:rotate(-4deg);pointer-events:none}.cn-dashboard-slogan span:nth-child(2){margin-left:13px}.cn-dashboard-slogan span:nth-child(3){margin-left:3px}.cn-dashboard-journey{min-width:0;aspect-ratio:1032/328;min-height:0;overflow:visible;display:flex;align-items:center;justify-content:center;background:transparent;border:0;box-shadow:none}.cn-dashboard-journey img{display:block;width:100%;height:auto;aspect-ratio:auto;object-fit:contain;object-position:center;max-width:none;filter:drop-shadow(0 14px 26px rgba(24,79,88,.10));-webkit-mask-image:linear-gradient(to right,transparent 0%,black 5%,black 95%,transparent 100%);mask-image:linear-gradient(to right,transparent 0%,black 5%,black 95%,transparent 100%)}.cn-root:not(.light) .cn-dashboard-journey img{filter:drop-shadow(0 14px 28px rgba(0,0,0,.18));-webkit-mask-image:linear-gradient(to right,transparent 0%,black 4%,black 96%,transparent 100%);mask-image:linear-gradient(to right,transparent 0%,black 4%,black 96%,transparent 100%)}
+  .cn-dashboard-actions{display:flex;align-items:center;gap:10px}.cn-dashboard-actions .cn-dashboard-search{width:270px}
+
   .cn-stat{position:relative;overflow:hidden;padding:19px 18px 17px;min-height:120px;background:linear-gradient(145deg,var(--surface),rgba(255,255,255,.025))}.cn-stat::after{content:"";position:absolute;width:150px;height:150px;right:-68px;top:-75px;border-radius:50%;background:var(--stat-glow,rgba(37,99,235,.10));filter:blur(3px)}.cn-stat::before{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(125deg,rgba(255,255,255,.07),transparent 42%)}
   .cn-stat-icon{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin-bottom:11px;box-shadow:0 9px 22px rgba(7,19,33,.09);border:1px solid rgba(255,255,255,.13)}.cn-stat-value{font-size:26px;line-height:1;font-weight:850;color:var(--text)}.cn-stat-label{font-size:12px;color:var(--text-muted);margin-top:7px;font-weight:600}.cn-stat-note{font-size:11px;color:var(--stat-color,var(--sage));margin-top:8px;font-weight:700}
   .cn-section-title{font-size:15px;font-weight:800;color:var(--text)}.cn-section-link{font-size:12px;color:var(--gold);font-weight:750;cursor:pointer}
@@ -83,7 +90,8 @@ const THEME_CSS = `
   .cn-motivation{min-height:285px;position:relative;overflow:hidden;background:linear-gradient(145deg,#e9f8ff 0%,#eefaf1 56%,#d9f0e6 100%);border-color:rgba(37,99,235,.12);box-shadow:0 22px 50px rgba(31,91,106,.10)}.cn-motivation::before{content:"";position:absolute;width:300px;height:170px;left:-35px;bottom:-55px;border-radius:50%;background:radial-gradient(ellipse at center,rgba(37,99,235,.17),transparent 68%);filter:blur(3px)}.cn-motivation::after{content:"";position:absolute;right:-30px;top:65px;width:200px;height:105px;border-radius:50%;background:radial-gradient(ellipse at center,rgba(255,255,255,.94),rgba(255,255,255,0) 68%);filter:blur(3px)}.cn-motivation-copy{position:relative;z-index:4}.cn-motivation-kicker{font-size:10px;font-weight:900;letter-spacing:.18em;color:#4f7089}.cn-motivation-title{font-size:26px;line-height:.98;font-weight:900;letter-spacing:-.05em;color:#12243d;margin-top:8px}.cn-motivation-sub{font-size:11px;line-height:1.5;color:#526b82;margin-top:11px;max-width:190px}.cn-motivation-scene{position:absolute;left:-5%;right:-4%;bottom:-1px;height:56%;z-index:2;overflow:hidden}.cn-motivation-scene::before{content:"";position:absolute;left:-6%;right:-4%;bottom:-22%;height:125%;background:linear-gradient(155deg,transparent 0 29%,#9fc4a7 29% 43%,#7fb58c 43% 58%,#b9d8b8 58% 100%);clip-path:polygon(0 100%,18% 68%,33% 79%,48% 40%,59% 56%,75% 26%,100% 100%)}.cn-motivation-scene::after{content:"";position:absolute;left:22%;bottom:-8%;width:58%;height:92%;background:linear-gradient(158deg,transparent 0 43%,rgba(255,255,255,.95) 43% 52%,#e9c45b 52% 59%,rgba(255,255,255,0) 59%);clip-path:polygon(45% 0,67% 0,58% 25%,77% 45%,64% 63%,100% 100%,0 100%,35% 65%,48% 43%,37% 25%);opacity:.9}.cn-mountain{position:absolute;left:10%;right:10%;bottom:0;height:42%;opacity:.75;background:linear-gradient(145deg,transparent 0 25%,rgba(37,99,235,.12) 25% 50%,transparent 50% 100%);clip-path:polygon(0 100%,35% 40%,50% 68%,67% 20%,100% 100%)}.cn-motivation-sun{position:absolute;right:26px;bottom:74px;width:44px;height:44px;border-radius:50%;background:radial-gradient(circle,#fff4a9 0 36%,rgba(255,215,79,.5) 37% 65%,transparent 66%);filter:blur(.2px);z-index:3}.cn-motivation-bird{position:absolute;right:47px;top:76px;font-size:18px;z-index:4;color:#34526a;transform:rotate(-10deg)}
   .cn-root:not(.light) .cn-motivation{background:linear-gradient(145deg,#071a2d 0%,#09233a 56%,#071421 100%);border-color:rgba(245,196,81,.18);box-shadow:0 24px 60px rgba(0,0,0,.18)}.cn-root:not(.light) .cn-motivation::before{background:radial-gradient(ellipse at center,rgba(245,196,81,.17),transparent 68%)}.cn-root:not(.light) .cn-motivation::after{background:radial-gradient(ellipse at center,rgba(61,109,151,.22),transparent 68%)}.cn-root:not(.light) .cn-motivation-kicker{color:#91a9bf}.cn-root:not(.light) .cn-motivation-title{color:#f7fbff}.cn-root:not(.light) .cn-motivation-sub{color:#b7c8d9}.cn-root:not(.light) .cn-motivation-scene::before{background:linear-gradient(155deg,transparent 0 29%,#183b4d 29% 43%,#0f2c3e 43% 58%,#1b3c49 58% 100%)}.cn-root:not(.light) .cn-motivation-scene::after{background:linear-gradient(158deg,transparent 0 43%,rgba(255,240,171,.96) 43% 52%,#f5c451 52% 59%,rgba(255,255,255,0) 59%)}.cn-root:not(.light) .cn-mountain{opacity:.7;background:linear-gradient(150deg,transparent 0 25%,rgba(18,65,78,.75) 25% 49%,transparent 49% 100%)}.cn-root:not(.light) .cn-motivation-sun{background:radial-gradient(circle,#f9e8a3 0 26%,rgba(245,196,81,.28) 27% 66%,transparent 67%);box-shadow:0 0 25px rgba(245,196,81,.18)}
   .cn-chart-card{min-height:285px}.cn-donut-wrap{display:flex;align-items:center;gap:14px}.cn-legend{display:flex;flex-direction:column;gap:10px;min-width:132px}.cn-legend-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-muted);min-height:20px}.cn-legend-dot{width:10px;height:10px;border-radius:50%;box-shadow:0 0 0 3px rgba(255,255,255,.03)}.cn-donut-center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none}.cn-donut-total{font-size:25px;font-weight:900;color:var(--text);line-height:1}.cn-donut-label{font-size:10px;color:var(--text-muted);margin-top:3px}.cn-filter{position:relative}.cn-filter-menu{position:absolute;right:0;top:calc(100% + 8px);z-index:20;min-width:150px;padding:7px;background:var(--surface);border:1px solid var(--border-soft);border-radius:13px;box-shadow:0 22px 48px rgba(0,0,0,.20);backdrop-filter:blur(18px)}.cn-filter-option{display:flex;align-items:center;width:100%;padding:8px 10px;border-radius:9px;border:0;background:transparent;color:var(--text-muted);font-size:12px;text-align:left;cursor:pointer}.cn-filter-option:hover{background:var(--gold-soft);color:var(--text)}.cn-filter-option.active{background:var(--gold-soft);color:var(--gold);font-weight:800}
-  @media(max-width:860px){.cn-sidebar{display:none}.cn-card{border-radius:16px}.cn-mobile-logo{width:145px}.cn-dashboard-top{align-items:flex-start}.cn-dashboard-search{display:none}.cn-hero-name{font-size:25px}.cn-hero-decor{display:none}.cn-stat{min-height:105px}.cn-motivation{min-height:250px}.cn-donut-wrap{justify-content:center}.cn-donut-wrap>div:first-child{width:190px!important;height:190px!important;flex-basis:190px!important}.cn-legend{min-width:120px}.cn-logo-shell{width:190px;height:135px;padding:0}}
+  @media(max-width:1100px){.cn-dashboard-top{grid-template-columns:minmax(220px,290px) minmax(300px,1fr) auto;gap:14px}.cn-dashboard-journey{height:auto}.cn-dashboard-slogan{display:none}.cn-dashboard-actions .cn-dashboard-search{width:230px}}
+  @media(max-width:860px){.cn-sidebar{display:none}.cn-card{border-radius:16px}.cn-mobile-logo{width:145px}.cn-dashboard-top{grid-template-columns:1fr;align-items:flex-start;gap:10px}.cn-dashboard-search{display:none}.cn-hero-name{font-size:25px}.cn-dashboard-slogan{display:none}.cn-dashboard-journey{display:flex;width:100%;order:2}.cn-dashboard-actions{order:3;justify-content:flex-end}.cn-dashboard-journey img{width:100%}.cn-stat{min-height:105px}.cn-motivation{min-height:250px}.cn-donut-wrap{justify-content:center}.cn-donut-wrap>div:first-child{width:190px!important;height:190px!important;flex-basis:190px!important}.cn-legend{min-width:120px}.cn-logo-shell{width:190px;height:135px;padding:0}}
   @media(min-width:861px){.cn-bottomnav{display:none}}`;
 
 
@@ -118,6 +126,9 @@ const STAGE_META = {
 };
 const EXPERIENCE_LEVELS = ["Student / Fresher", "0-1 years", "1-3 years", "3-5 years", "5+ years"];
 const STORAGE_KEY = "careernest-data-v1";
+function userStorageKey(userId) {
+  return `${STORAGE_KEY}-${userId}`;
+}
 
 /* ============================== HELPERS ============================== */
 function uid() {
@@ -175,14 +186,17 @@ function sampleData() {
     ],
   };
 }
-async function loadData() {
+async function loadData(userId) {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!userId) return null;
+    const raw = localStorage.getItem(userStorageKey(userId));
     return raw ? JSON.parse(raw) : null;
   } catch (e) { return null; }
 }
-async function saveData(data) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+async function saveData(userId, data) {
+  try {
+    if (!userId) return;
+    localStorage.setItem(userStorageKey(userId), JSON.stringify(data)); }
   catch (e) { console.error("CareerNest: could not save data", e); }
 }
 
@@ -224,14 +238,20 @@ function ProgressBar({ pct, color = "var(--gold)" }) {
   );
 }
 function Modal({ title, onClose, children, wide }) {
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = previousOverflow; };
+  }, []);
+
   return (
-    <div style={{ background: "rgba(0,0,0,0.55)" }} className="fixed inset-0 z-50 flex items-start md:items-center justify-center p-4 overflow-y-auto">
-      <div className={"cn-card w-full " + (wide ? "max-w-2xl" : "max-w-md") + " my-8"}>
-        <div style={{ borderBottom: "1px solid var(--border-soft)" }} className="flex items-center justify-between px-6 py-4">
+    <div style={{ background: "rgba(0,0,0,0.55)" }} className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-hidden">
+      <div className={"cn-card w-full max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] flex flex-col " + (wide ? "max-w-2xl" : "max-w-md")}>
+        <div style={{ borderBottom: "1px solid var(--border-soft)" }} className="flex items-center justify-between px-6 py-4 shrink-0">
           <p className="cn-serif text-lg">{title}</p>
-          <button onClick={onClose} style={{ color: "var(--text-muted)" }}><X size={18} /></button>
+          <button onClick={onClose} style={{ color: "var(--text-muted)" }} aria-label={"Close " + title}><X size={18} /></button>
         </div>
-        <div className="px-6 py-5">{children}</div>
+        <div className="px-6 py-5 overflow-y-auto min-h-0">{children}</div>
       </div>
     </div>
   );
@@ -253,7 +273,7 @@ const NAV_ITEMS = [
   { key: "archive", label: "Archive", icon: ArchiveIcon },
   { key: "profile", label: "Profile", icon: User },
 ];
-function Sidebar({ page, setPage, onAdd }) {
+function Sidebar({ page, setPage, onAdd, onLogout }) {
   return (
     <aside className="cn-sidebar w-60 shrink-0 h-screen sticky top-0 flex flex-col px-4 py-6"
       style={{ borderRight: "1px solid var(--border-soft)" }}>
@@ -277,8 +297,13 @@ function Sidebar({ page, setPage, onAdd }) {
 
       <div className="cn-sidebar-art" aria-hidden="true"><span className="wave" /><span className="wave-2" /><span className="stem" /><span className="leaf-a" /><span className="leaf-b" /><span className="leaf-c" /><span className="leaf-d" /></div>
 
-      <div className="px-3 pt-2 pb-2 mt-auto relative z-10" style={{ color: "var(--text-faint)" }}>
-        <p className="text-[12px]">Your Career Journey</p><p className="text-[12px]">Our Priority</p>
+      <div className="mt-auto relative z-10 flex flex-col gap-2">
+        <div className="px-3 pt-2" style={{ color: "var(--text-faint)" }}>
+          <p className="text-[12px]">Your Career Journey</p><p className="text-[12px]">Our Priority</p>
+        </div>
+        <button type="button" className="cn-btn-ghost w-full justify-center" onClick={onLogout} title="Sign out of CareerNest" aria-label="Sign out of CareerNest" style={{ color: "var(--red)" }}>
+          <LogOut size={15} /> Sign out
+        </button>
       </div>
     </aside>
   );
@@ -301,14 +326,39 @@ function BottomNav({ page, setPage }) {
 }
 
 /* ============================== ADD APPLICATION MODAL ============================== */
-function AddApplicationModal({ onClose, onSave, resumes }) {
+function AddApplicationPage({ onClose, onSave, resumes }) {
   const [form, setForm] = useState({
     companyName: "", jobRole: "", category: "Software / IT", appliedDate: new Date().toISOString().slice(0, 10),
     location: "", workType: "Full-time", salary: "", applicationSource: "LinkedIn", jobLink: "", resumeId: "", notes: "",
   });
   const [error, setError] = useState("");
+  const [availableResumes, setAvailableResumes] = useState(resumes);
+
+  useEffect(() => {
+    setAvailableResumes(resumes);
+  }, [resumes]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (resumes.length > 0) return;
+    (async () => {
+      const { data, error } = await supabase
+        .from("resumes")
+        .select("id,name,category,file_name,file_path,created_at,updated_at")
+        .order("created_at", { ascending: false });
+      if (!cancelled && !error) {
+        setAvailableResumes((data || []).map(r => ({
+          id: r.id, name: r.name || "Unnamed resume", category: r.category || "Software / IT",
+          fileName: r.file_name || "resume.pdf", filePath: r.file_path || "",
+          createdAt: r.created_at, updatedAt: r.updated_at,
+        })));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [resumes]);
+
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
-  const relevantResumes = resumes.filter(r => r.category === form.category);
+  const relevantResumes = availableResumes;
 
   function submit(e) {
     e.preventDefault();
@@ -317,7 +367,15 @@ function AddApplicationModal({ onClose, onSave, resumes }) {
   }
 
   return (
-    <Modal title="Add Application" onClose={onClose} wide>
+    <div className="flex flex-col gap-5 max-w-4xl">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <p className="cn-serif text-2xl">Add Application</p>
+          <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>Track a new opportunity in your CareerNest.</p>
+        </div>
+        <button type="button" className="cn-btn-ghost" onClick={onClose}><ArrowLeft size={14} /> Back to applications</button>
+      </div>
+      <div className="cn-card p-6">
       <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="cn-label">Company name</label>
@@ -363,8 +421,8 @@ function AddApplicationModal({ onClose, onSave, resumes }) {
           <label className="cn-label">Resume used</label>
           <select className="cn-input" value={form.resumeId} onChange={e => set("resumeId", e.target.value)}>
             <option value="">— None selected —</option>
-            {relevantResumes.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-            {relevantResumes.length === 0 && <option disabled>No resumes in this category yet — add one in Career Files</option>}
+            {relevantResumes.map(r => <option key={r.id} value={r.id}>{r.name} · {r.category}</option>)}
+            {relevantResumes.length === 0 && <option disabled>No resumes uploaded yet — add one in Career Files</option>}
           </select>
         </div>
         <div className="md:col-span-2">
@@ -379,12 +437,13 @@ function AddApplicationModal({ onClose, onSave, resumes }) {
           <button type="submit" className="cn-btn-gold">Save application</button>
         </div>
       </form>
-    </Modal>
+      </div>
+    </div>
   );
 }
 
 /* ============================== EDIT APPLICATION MODAL ============================== */
-function EditApplicationModal({ onClose, onSave, resumes, app }) {
+function EditApplicationPage({ onClose, onSave, resumes, app }) {
   const [form, setForm] = useState({
     companyName: app.companyName || "",
     jobRole: app.jobRole || "",
@@ -400,9 +459,33 @@ function EditApplicationModal({ onClose, onSave, resumes, app }) {
   });
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [availableResumes, setAvailableResumes] = useState(resumes);
+
+  useEffect(() => {
+    setAvailableResumes(resumes);
+  }, [resumes]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (resumes.length > 0) return;
+    (async () => {
+      const { data, error } = await supabase
+        .from("resumes")
+        .select("id,name,category,file_name,file_path,created_at,updated_at")
+        .order("created_at", { ascending: false });
+      if (!cancelled && !error) {
+        setAvailableResumes((data || []).map(r => ({
+          id: r.id, name: r.name || "Unnamed resume", category: r.category || "Software / IT",
+          fileName: r.file_name || "resume.pdf", filePath: r.file_path || "",
+          createdAt: r.created_at, updatedAt: r.updated_at,
+        })));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [resumes]);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
-  const relevantResumes = resumes.filter(r => r.category === form.category);
+  const relevantResumes = availableResumes;
 
   async function submit(e) {
     e.preventDefault();
@@ -420,7 +503,15 @@ function EditApplicationModal({ onClose, onSave, resumes, app }) {
   }
 
   return (
-    <Modal title="Edit Application" onClose={onClose} wide>
+    <div className="flex flex-col gap-5 max-w-4xl">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <p className="cn-serif text-2xl">Edit Application</p>
+          <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>Update the details for {app.companyName}.</p>
+        </div>
+        <button type="button" className="cn-btn-ghost" onClick={onClose} disabled={saving}><ArrowLeft size={14} /> Back to applications</button>
+      </div>
+      <div className="cn-card p-6">
       <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="cn-label">Company name</label>
@@ -466,8 +557,8 @@ function EditApplicationModal({ onClose, onSave, resumes, app }) {
           <label className="cn-label">Resume used</label>
           <select className="cn-input" value={form.resumeId} onChange={e => set("resumeId", e.target.value)}>
             <option value="">— None selected —</option>
-            {relevantResumes.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-            {relevantResumes.length === 0 && <option disabled>No resumes in this category yet — add one in Career Files</option>}
+            {relevantResumes.map(r => <option key={r.id} value={r.id}>{r.name} · {r.category}</option>)}
+            {relevantResumes.length === 0 && <option disabled>No resumes uploaded yet — add one in Career Files</option>}
           </select>
         </div>
         <div className="md:col-span-2">
@@ -482,7 +573,8 @@ function EditApplicationModal({ onClose, onSave, resumes, app }) {
           <button type="submit" className="cn-btn-gold" disabled={saving}>{saving ? "Saving changes…" : "Save changes"}</button>
         </div>
       </form>
-    </Modal>
+      </div>
+    </div>
   );
 }
 
@@ -618,9 +710,14 @@ function HomePage({ applications, resumes, setPage, openAdd, profile, setProfile
           <div className="cn-hero-greeting">{greeting}</div>
           <div className="cn-hero-name">{displayName} <span aria-hidden="true">👋</span></div>
           <div className="cn-hero-sub">{isLight ? "Keep going! Every application is a step towards your future." : "Discipline today, success tomorrow."}</div>
-          <div className="cn-hero-decor"><span>{isLight ? "Build" : "Progress"}</span><span>{isLight ? "a Better" : "Lives"}</span><span>{isLight ? "You" : "Here"}</span></div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="cn-dashboard-journey" aria-label="Career journey illustration">
+          <img src={isLight ? "/career-journey-light.png" : "/career-journey-center.png"} alt="Career journey from challenges to growth" />
+        </div>
+        <div className="cn-dashboard-slogan" aria-label="Progress Lives Here">
+          <span>Progress</span><span>Lives</span><span>Here</span>
+        </div>
+        <div className="cn-dashboard-actions">
           <div className="cn-dashboard-search">
             <Search size={17} style={{position:"absolute",left:13,top:13,color:"var(--text-faint)"}} />
             <input className="cn-input" placeholder="Search applications…" onKeyDown={e => { if(e.key === "Enter") setPage("applications") }} />
@@ -633,26 +730,26 @@ function HomePage({ applications, resumes, setPage, openAdd, profile, setProfile
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="cn-card cn-stat" style={{"--stat-glow":"rgba(59,130,246,.14)"}}>
+        <button type="button" className="cn-card cn-stat text-left w-full cursor-pointer" style={{"--stat-glow":"rgba(59,130,246,.14)"}} onClick={() => setPage("applications", "All")} aria-label="View all applications">
           <div className="cn-stat-icon" style={{background:"rgba(59,130,246,.13)",color:"var(--blue)"}}><FileText size={21}/></div>
           <div className="cn-stat-value">{counts.total}</div><div className="cn-stat-label">Total Applications</div>
           <div className="cn-stat-note">{period === "All Time" ? "Your complete journey" : `${counts.total ? "↑ " : ""}${counts.total ? "Tracked in this period" : "No applications in this period"}`}</div>
-        </div>
-        <div className="cn-card cn-stat" style={{"--stat-glow":"rgba(245,184,46,.13)"}}>
+        </button>
+        <button type="button" className="cn-card cn-stat text-left w-full cursor-pointer" style={{"--stat-glow":"rgba(245,184,46,.13)"}} onClick={() => setPage("applications", "In Progress")} aria-label="View in progress applications">
           <div className="cn-stat-icon" style={{background:"rgba(245,184,46,.14)",color:"#d99a00"}}><Clock size={21}/></div>
           <div className="cn-stat-value">{counts.inProgress}</div><div className="cn-stat-label">In Progress</div>
           <div className="cn-stat-note" style={{"--stat-color":"var(--text-muted)"}}>{pct(counts.inProgress)}% of total</div>
-        </div>
-        <div className="cn-card cn-stat" style={{"--stat-glow":"rgba(74,222,128,.13)"}}>
+        </button>
+        <button type="button" className="cn-card cn-stat text-left w-full cursor-pointer" style={{"--stat-glow":"rgba(74,222,128,.13)"}} onClick={() => setPage("applications", "Offer")} aria-label="View offer applications">
           <div className="cn-stat-icon" style={{background:"rgba(74,222,128,.14)",color:"var(--sage)"}}><Briefcase size={21}/></div>
           <div className="cn-stat-value">{counts.offer}</div><div className="cn-stat-label">Offers</div>
           <div className="cn-stat-note" style={{"--stat-color":"var(--text-muted)"}}>{pct(counts.offer)}% of total</div>
-        </div>
-        <div className="cn-card cn-stat" style={{"--stat-glow":"rgba(139,92,246,.13)"}}>
+        </button>
+        <button type="button" className="cn-card cn-stat text-left w-full cursor-pointer" style={{"--stat-glow":"rgba(139,92,246,.13)"}} onClick={() => setPage("applications", "Interview")} aria-label="View interview applications">
           <div className="cn-stat-icon" style={{background:"rgba(139,92,246,.14)",color:"#8b5cf6"}}><User size={21}/></div>
           <div className="cn-stat-value">{counts.interview}</div><div className="cn-stat-label">Interviews</div>
           <div className="cn-stat-note" style={{"--stat-color":"var(--text-muted)"}}>{pct(counts.interview)}% of total</div>
-        </div>
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1.1fr_.72fr] gap-4">
@@ -717,10 +814,10 @@ function HomePage({ applications, resumes, setPage, openAdd, profile, setProfile
   );
 }
 /* ============================== APPLICATIONS LIST ============================== */
-function ApplicationsPage({ applications, resumes, openApp, openAdd, setPage }) {
+function ApplicationsPage({ applications, resumes, openApp, openAdd, openEdit, setPage, initialStatus = "All" }) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All");
-  const [status, setStatus] = useState("All");
+  const [status, setStatus] = useState(initialStatus);
   const [sort, setSort] = useState("newest");
 
   const resumeName = (id) => resumes.find(r => r.id === id)?.name;
@@ -817,7 +914,19 @@ function ApplicationsPage({ applications, resumes, openApp, openAdd, setPage }) 
                   {resumeName(a.resumeId) || "No resume linked"}<br />
                   Applied {fmtDate(a.appliedDate)}
                 </div>
-                <div className="flex md:justify-end"><Pill text={a.status} style={STATUS_STYLE[a.status]} /></div>
+                <div className="flex md:justify-end items-center gap-2">
+                  <Pill text={a.status} style={STATUS_STYLE[a.status]} />
+                  <button
+                    type="button"
+                    className="cn-btn-ghost"
+                    style={{ padding: "7px 9px" }}
+                    title="Edit application"
+                    aria-label={`Edit ${a.companyName}`}
+                    onClick={(e) => { e.stopPropagation(); openEdit(a.id); }}
+                  >
+                    <Pencil size={13} />
+                  </button>
+                </div>
               </div>
             </div>
           ))}
@@ -1155,27 +1264,92 @@ function ProfilePage({ profile, setProfile, data, onImport }) {
 
 /* ============================== APP ============================== */
 function LoginPage() {
+  const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
-  async function handleLogin(e) {
+  function switchMode(nextMode) {
+    setMode(nextMode);
+    setError("");
+    setMessage("");
+    setPassword("");
+    setConfirmPassword("");
+  }
+
+  async function handleSubmit(e) {
     e.preventDefault();
     setError("");
+    setMessage("");
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      if (!email.trim()) {
+        setError("Please enter your email address.");
+        return;
+      }
 
-    if (error) {
-      setError(error.message);
+      if (mode === "forgot") {
+        const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+          redirectTo: window.location.origin,
+        });
+
+        if (error) {
+          setError(error.message);
+        } else {
+          setMessage("Password reset link sent. Check your email and open the link to set a new password.");
+        }
+        return;
+      }
+
+      if (password.length < 6) {
+        setError("Password must be at least 6 characters.");
+        return;
+      }
+
+      if (mode === "signup") {
+        if (password !== confirmPassword) {
+          setError("Passwords do not match.");
+          return;
+        }
+
+        const { data, error } = await supabase.auth.signUp({
+          email: email.trim(),
+          password,
+        });
+
+        if (error) {
+          setError(error.message);
+        } else if (data?.session) {
+          setMessage("Account created successfully. Welcome to CareerNest!");
+        } else {
+          setMessage("Account created. Please check your email and confirm your account before signing in.");
+          setMode("login");
+          setPassword("");
+          setConfirmPassword("");
+        }
+        return;
+      }
+
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+
+      if (error) {
+        setError(error.message);
+      }
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   }
+
+  const isLogin = mode === "login";
+  const isSignup = mode === "signup";
+  const isForgot = mode === "forgot";
 
   return (
     <div className="min-h-screen bg-black text-white flex items-center justify-center px-4">
@@ -1183,15 +1357,13 @@ function LoginPage() {
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-semibold">CareerNest</h1>
           <p className="mt-2 text-sm text-zinc-400">
-            Your Career. One Home.
+            {isSignup ? "Create your own career space." : isForgot ? "Reset your CareerNest password." : "Your Career. One Home."}
           </p>
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="mb-2 block text-sm text-zinc-300">
-              Email
-            </label>
+            <label className="mb-2 block text-sm text-zinc-300">Email</label>
             <input
               type="email"
               value={email}
@@ -1199,20 +1371,175 @@ function LoginPage() {
               required
               className="w-full rounded-lg border border-white/10 bg-black px-4 py-3 text-white outline-none"
               placeholder="Enter your email"
+              disabled={loading}
             />
           </div>
 
+          {!isForgot && (
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <label className="block text-sm text-zinc-300">Password</label>
+                {isLogin && (
+                  <button
+                    type="button"
+                    className="text-xs text-yellow-400 hover:text-yellow-300"
+                    onClick={() => switchMode("forgot")}
+                    disabled={loading}
+                  >
+                    Forgot password?
+                  </button>
+                )}
+              </div>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
+                className="w-full rounded-lg border border-white/10 bg-black px-4 py-3 text-white outline-none"
+                placeholder={isSignup ? "Create a password (6+ characters)" : "Enter your password"}
+                disabled={loading}
+              />
+            </div>
+          )}
+
+          {isSignup && (
+            <div>
+              <label className="mb-2 block text-sm text-zinc-300">Confirm password</label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                minLength={6}
+                className="w-full rounded-lg border border-white/10 bg-black px-4 py-3 text-white outline-none"
+                placeholder="Re-enter your password"
+                disabled={loading}
+              />
+            </div>
+          )}
+
+          {error && (
+            <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">
+              {error}
+            </div>
+          )}
+
+          {message && (
+            <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-300">
+              {message}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded-lg bg-yellow-500 px-4 py-3 font-medium text-black disabled:opacity-50"
+          >
+            {loading ? "Please wait..." : isSignup ? "Create account" : isForgot ? "Send reset link" : "Sign in"}
+          </button>
+        </form>
+
+        <div className="mt-6 text-center text-sm text-zinc-400">
+          {isForgot ? (
+            <button type="button" className="text-yellow-400 hover:text-yellow-300" onClick={() => switchMode("login")}>
+              ← Back to sign in
+            </button>
+          ) : isLogin ? (
+            <p>
+              New to CareerNest?{" "}
+              <button type="button" className="text-yellow-400 hover:text-yellow-300" onClick={() => switchMode("signup")}>
+                Create an account
+              </button>
+            </p>
+          ) : (
+            <p>
+              Already have an account?{" "}
+              <button type="button" className="text-yellow-400 hover:text-yellow-300" onClick={() => switchMode("login")}>
+                Sign in
+              </button>
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ResetPasswordPage({ onDone }) {
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function handleReset(e) {
+    e.preventDefault();
+    setError("");
+    setMessage("");
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    setLoading(true);
+    const { error } = await supabase.auth.updateUser({ password });
+    setLoading(false);
+
+    if (error) {
+      setError(error.message);
+      return;
+    }
+
+    setMessage("Password updated successfully. You can now sign in with your new password.");
+    setPassword("");
+    setConfirmPassword("");
+
+    setTimeout(async () => {
+      await supabase.auth.signOut();
+      onDone();
+    }, 900);
+  }
+
+  return (
+    <div className="min-h-screen bg-black text-white flex items-center justify-center px-4">
+      <div className="w-full max-w-md rounded-2xl border border-white/10 bg-zinc-900 p-8">
+        <div className="mb-8 text-center">
+          <h1 className="text-3xl font-semibold">Set New Password</h1>
+          <p className="mt-2 text-sm text-zinc-400">Choose a new password for your CareerNest account.</p>
+        </div>
+
+        <form onSubmit={handleReset} className="space-y-5">
           <div>
-            <label className="mb-2 block text-sm text-zinc-300">
-              Password
-            </label>
+            <label className="mb-2 block text-sm text-zinc-300">New password</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              minLength={6}
               className="w-full rounded-lg border border-white/10 bg-black px-4 py-3 text-white outline-none"
-              placeholder="Enter your password"
+              placeholder="Enter new password"
+              disabled={loading}
+            />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm text-zinc-300">Confirm new password</label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              minLength={6}
+              className="w-full rounded-lg border border-white/10 bg-black px-4 py-3 text-white outline-none"
+              placeholder="Re-enter new password"
+              disabled={loading}
             />
           </div>
 
@@ -1222,12 +1549,14 @@ function LoginPage() {
             </div>
           )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-lg bg-yellow-500 px-4 py-3 font-medium text-black disabled:opacity-50"
-          >
-            {loading ? "Signing in..." : "Sign in"}
+          {message && (
+            <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-300">
+              {message}
+            </div>
+          )}
+
+          <button type="submit" disabled={loading} className="w-full rounded-lg bg-yellow-500 px-4 py-3 font-medium text-black disabled:opacity-50">
+            {loading ? "Updating..." : "Update password"}
           </button>
         </form>
       </div>
@@ -1238,6 +1567,7 @@ function LoginPage() {
 export default function App() {
   const [loaded, setLoaded] = useState(false);
   const [session, setSession] = useState(null);
+  const [recoveryMode, setRecoveryMode] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -1246,7 +1576,8 @@ export default function App() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY") setRecoveryMode(true);
       setSession(session);
     });
 
@@ -1257,9 +1588,8 @@ export default function App() {
   const [applications, setApplications] = useState([]);
   const [resumes, setResumes] = useState([]);
   const [page, setPage] = useState("home");
+  const [applicationStatusFilter, setApplicationStatusFilter] = useState("All");
   const [selectedId, setSelectedId] = useState(null);
-  const [showAddApp, setShowAddApp] = useState(false);
-  const [showEditApp, setShowEditApp] = useState(false);
   const [showAddResume, setShowAddResume] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
 
@@ -1269,7 +1599,7 @@ export default function App() {
     let cancelled = false;
 
     (async () => {
-      const localData = await loadData();
+      const localData = await loadData(session.user.id);
 
       const { data: cloudApplications, error } = await supabase
         .from("applications")
@@ -1342,8 +1672,8 @@ export default function App() {
 
   useEffect(() => {
     if (!loaded) return;
-    saveData({ profile, applications, resumes });
-  }, [profile, applications, resumes, loaded]);
+    saveData(session?.user?.id, { profile, applications, resumes });
+  }, [profile, applications, resumes, loaded, session?.user?.id]);
 
   const updateApplication = useCallback(async (id, patch) => {
     const dbPatch = {};
@@ -1458,9 +1788,9 @@ export default function App() {
     };
 
     setApplications(prev => [app, ...prev]);
-    setShowAddApp(false);
     setSelectedId(app.id);
-    setPage("detail");
+    setApplicationStatusFilter("All");
+    setPage("applications");
   }, []);
   const addResume = useCallback(async (form) => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -1559,7 +1889,24 @@ export default function App() {
   const selectedApp = applications.find(a => a.id === selectedId);
 
   function openApp(id) { setSelectedId(id); setPage("detail"); setMobileMenu(false); }
-  function goPage(p) { setPage(p); setMobileMenu(false); }
+  function goPage(p, status) {
+    if (p === "applications") setApplicationStatusFilter(status || "All");
+    setPage(p);
+    setMobileMenu(false);
+  }
+  function openAddApplication() {
+    setApplicationStatusFilter("All");
+    setPage("add-application");
+    setMobileMenu(false);
+  }
+  async function handleLogout() {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error("Supabase sign out error:", error);
+      alert("Could not sign out: " + error.message);
+    }
+  }
+  if (recoveryMode) return <ResetPasswordPage onDone={() => setRecoveryMode(false)} />;
   if (!session) return <LoginPage />;
   if (!loaded) {
     return (
@@ -1574,17 +1921,33 @@ export default function App() {
     <div className={"cn-root " + (profile.theme === "light" ? "light" : "")}>
       <style>{THEME_CSS}</style>
       <div className="flex">
-        <Sidebar page={page} setPage={goPage} onAdd={() => setShowAddApp(true)} />
+        <Sidebar page={page} setPage={goPage} onAdd={openAddApplication} onLogout={handleLogout} />
 
         <div className="flex-1 min-w-0">
           <div className="md:hidden flex items-center justify-between px-4 py-4" style={{ borderBottom: "1px solid var(--border-soft)" }}>
             <NestLogo variant="mobile" />
-            <button className="cn-btn-gold" style={{ padding: "8px 12px" }} onClick={() => setShowAddApp(true)}><Plus size={14} /></button>
+            <div className="flex items-center gap-2">
+              <button className="cn-btn-gold" style={{ padding: "8px 12px" }} onClick={openAddApplication} title="Add Application" aria-label="Add Application"><Plus size={14} /></button>
+              <button className="cn-btn-ghost" style={{ padding: "8px 10px", color: "var(--red)" }} onClick={handleLogout} title="Sign out" aria-label="Sign out"><LogOut size={15} /></button>
+            </div>
           </div>
 
-          <main className="px-4 md:px-8 py-6 md:py-8 pb-24 md:pb-10 max-w-7xl">
-            {page === "home" && <HomePage applications={applications} resumes={resumes} profile={profile} setProfile={setProfile} session={session} setPage={goPage} openAdd={() => setShowAddApp(true)} />}
-            {page === "applications" && <ApplicationsPage applications={applications} resumes={resumes} openApp={openApp} openAdd={() => setShowAddApp(true)} setPage={goPage} />}
+          <main className="cn-page-main min-h-screen px-4 md:px-8 py-6 md:py-8 pb-24 md:pb-10 max-w-7xl">
+            {page === "home" && <HomePage applications={applications} resumes={resumes} profile={profile} setProfile={setProfile} session={session} setPage={goPage} openAdd={openAddApplication} />}
+            {page === "applications" && <ApplicationsPage applications={applications} resumes={resumes} openApp={openApp} openAdd={openAddApplication} openEdit={(id) => { setSelectedId(id); setPage("edit-application"); setMobileMenu(false); }} setPage={goPage} initialStatus={applicationStatusFilter} />}
+            {page === "add-application" && <AddApplicationPage onClose={() => goPage("applications")} onSave={addApplication} resumes={resumes} />}
+            {page === "edit-application" && selectedApp && (
+              <EditApplicationPage
+                app={selectedApp}
+                resumes={resumes}
+                onClose={() => goPage("applications")}
+                onSave={async (patch) => {
+                  const ok = await updateApplication(selectedApp.id, patch);
+                  if (ok) goPage("applications");
+                  return ok;
+                }}
+              />
+            )}
             {page === "detail" && selectedApp && (
               <ApplicationDetail
                 app={selectedApp}
@@ -1592,7 +1955,7 @@ export default function App() {
                 updateApp={(patch) => updateApplication(selectedApp.id, patch)}
                 archiveApp={() => { updateApplication(selectedApp.id, { archivedAt: nowISO() }); goPage("archive"); }}
                 restoreApp={() => updateApplication(selectedApp.id, { archivedAt: null })}
-                openEdit={() => setShowEditApp(true)}
+                openEdit={() => { setPage("edit-application"); setMobileMenu(false); }}
                 back={() => goPage("applications")}
               />
             )}
@@ -1605,15 +1968,6 @@ export default function App() {
 
       <BottomNav page={page} setPage={goPage} />
 
-      {showEditApp && selectedApp && (
-        <EditApplicationModal
-          app={selectedApp}
-          resumes={resumes}
-          onClose={() => setShowEditApp(false)}
-          onSave={(patch) => updateApplication(selectedApp.id, patch)}
-        />
-      )}
-      {showAddApp && <AddApplicationModal onClose={() => setShowAddApp(false)} onSave={addApplication} resumes={resumes} />}
       {showAddResume && <AddResumeModal onClose={() => setShowAddResume(false)} onSave={addResume} />}
     </div>
   );
